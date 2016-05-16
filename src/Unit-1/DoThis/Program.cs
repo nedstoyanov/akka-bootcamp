@@ -1,5 +1,6 @@
 ﻿using System;
-﻿using Akka.Actor;
+using Akka.Actor;
+using WinTail;
 
 namespace WinTail
 {
@@ -12,19 +13,19 @@ namespace WinTail
         {
             // initialize MyActorSystem
             MyActorSystem = ActorSystem.Create("MyActorSystem");
-            
-            // time to make your first actors!
+
             var consoleWriterProps = Props.Create(() => new ConsoleWriterActor());
             var consoleWriterActor = MyActorSystem.ActorOf(consoleWriterProps, "consoleWriterActor");
 
-            var validationProps = Props.Create(() => new ValidationActor(consoleWriterActor));
-            var validatonActor = MyActorSystem.ActorOf(validationProps, "validationActor");
+            Props tailCoordinatorProps = Props.Create(() => new TailCoordinatorActor());
+            IActorRef tailCoordinatorActor = MyActorSystem.ActorOf(tailCoordinatorProps, "tailCoordinatorActor");
 
-            var consoleReaderProps = Props.Create(() => new ConsoleReaderActor(validatonActor));
+            Props fileValidatorActorProps = Props.Create(() => new FileValidatorActor(consoleWriterActor, tailCoordinatorActor));
+            IActorRef validationActor = MyActorSystem.ActorOf(fileValidatorActorProps, "validationActor");
+
+            var consoleReaderProps = Props.Create(() => new ConsoleReaderActor(validationActor));
             var consoleReaderActor = MyActorSystem.ActorOf(consoleReaderProps, "consoleReaderActor");
-
-           
-
+            
             // tell console reader to begin
             consoleReaderActor.Tell(ConsoleReaderActor.StartCommand);
 
